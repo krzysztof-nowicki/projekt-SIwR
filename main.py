@@ -63,6 +63,18 @@ for p in range(len(photo_list) - 1):
         people2[i][1] = float(list_of_lists[photo_num[p+1] + 2 + i][3])
 
         cv2.rectangle(img2, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 3)
+    print(np.subtract(people, people2[0]))
+    # for p in people2:
+    #     diff1tmp=100.
+    #     diff2tmp=100.
+    #     if p[0]!=0.0:
+    #         for o in people:
+    #             if o[0]!=0.0:
+    #                 diff1 = np.abs((p[0]-o[0]))
+    #                 diff2 = np.abs((p[1] - o[1]))
+    #                 if diff1 < diff1tmp and diff2 < diff2tmp:
+    #                     diff1tmp = diff1
+    #                     diff2tmp = diff2
     print(people)
     print(people2)
     cv2.imshow('frame', img)
