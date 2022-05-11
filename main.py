@@ -1,6 +1,5 @@
 import numpy as np
 
-from PIL import Image
 
 import cv2
 
@@ -17,14 +16,29 @@ for line in a_file:
     list_of_lists.append(line_list)
 
 a_file.close()
+photo_list = []
+photo_num = []
+for i, data in enumerate(list_of_lists):
+    if any("c6s1_" in s for s in data):
+        photo_list.append(data)
+        photo_num.append(i)
 
-x1 = float(list_of_lists[2][0]) + float(list_of_lists[2][2])
-y1 = float(list_of_lists[2][1])
-x2 = float(list_of_lists[2][0])
-y2 = float(list_of_lists[2][1])+ float(list_of_lists[2][3])
-print((x1, y1))
-print((x2, y2))
-cv2.line(img,(int(float(list_of_lists[2][0])),int(float(list_of_lists[2][1]))),(int(float(list_of_lists[2][0]))+5,int(float(list_of_lists[2][1]))),(255,0,0),5)
-cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 3)
-cv2.imshow('frame', img)
-cv2.waitKey(0)
+print(photo_list)
+print(photo_num)
+for p in range(len(photo_list)):
+    # print(photo_list[p][0])
+    name = 'frames/' + str(photo_list[p][0])
+    print(name)
+    img = cv2.imread(name)
+    for i in range(int(list_of_lists[photo_num[p]+1][0])):
+        x1 = float(list_of_lists[photo_num[p]+2+i][0])
+        y1 = float(list_of_lists[photo_num[p]+2+i][1])
+        x2 = float(list_of_lists[photo_num[p]+2+i][0]) + float(list_of_lists[photo_num[p]+2+i][2])
+        y2 = float(list_of_lists[photo_num[p]+2+i][1]) + float(list_of_lists[photo_num[p]+2+i][3])
+
+        cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 3)
+
+    cv2.imshow('frame', img)
+    cv2.waitKey(0)
+
+
