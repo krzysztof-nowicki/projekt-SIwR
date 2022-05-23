@@ -90,6 +90,7 @@ for p in range(len(photo_list) - 1):
 
 
         print(tmp)
+        print(tmp)
         print(personnumber)
         cv2.rectangle(img2, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 3)
 
