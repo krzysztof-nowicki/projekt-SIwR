@@ -18,7 +18,7 @@ for i, data in enumerate(list_of_lists):
     if any("c6s1_" in s for s in data):
         photo_list.append(data)
         photo_num.append(i)
-
+num_o_found = 1.0
 for p in range(len(photo_list) - 1):
 
     name = 'frames/' + str(photo_list[p][0])
@@ -33,7 +33,7 @@ for p in range(len(photo_list) - 1):
     peopleCount = []
     found_people = 0
     num_o_people = 0
-    threshhold = 0.8
+    threshold = 0.8
 
     for i in range(int(list_of_lists[photo_num[p] + 1][0])):
         x1 = float(list_of_lists[photo_num[p] + 2 + i][0])
@@ -64,8 +64,9 @@ for p in range(len(photo_list) - 1):
         peopleSize2[i][1] = float(list_of_lists[photo_num[p + 1] + 2 + i][3])
         num_o_people += 1
         personnumber = -1
+        threshold_local = threshold * num_o_found
         for j in range(int(list_of_lists[photo_num[p] + 1][0])):
-            threshhold_local = threshhold
+
             first_prob = np.sum(1 - np.abs(np.subtract(peopleSize[j], peopleSize2[i])) / peopleSize2[i]) / 2
             sec_prob = np.sum(1 - np.abs(np.subtract(peopleCoord[j], peopleCoord2[i]))/[img.shape[1], img.shape[0]]) / 2
 
@@ -89,15 +90,18 @@ for p in range(len(photo_list) - 1):
             print(sec_prob)
             print(third_prob)
             print("end of prob")
-            if full_prob > tmp and full_prob > threshhold_local:
+            if full_prob > tmp and full_prob > threshold_local:
                 tmp = full_prob
                 personnumber = j
 
         print("Person Number: ", personnumber)
         if personnumber != -1:
             found_people+=1
+    num_o_found = found_people/np.min([num_o_people, len(peopleCount)])
+    if num_o_found < 0.5:
+        num_o_found = 0.5 #minimum size for treshhold
     print("Number of found people ", found_people)
-    print("% of found people ", found_people/np.min([num_o_people, len(peopleCount)]))
+    print("% of found people ", num_o_found)
     print("peopleCount: ", peopleCount)
 
     cv2.imshow('frame', img)
