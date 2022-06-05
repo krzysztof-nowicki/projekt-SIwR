@@ -49,6 +49,8 @@ for p in range(len(photo_list) - 1):
 
         # cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 3)
     tmp = 0.0
+
+
     for i in range(int(list_of_lists[photo_num[p + 1] + 1][0])):
 
         x1 = float(list_of_lists[photo_num[p + 1] + 2 + i][0])
