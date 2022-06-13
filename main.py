@@ -2,7 +2,6 @@ import numpy as np
 
 import cv2
 
-img = cv2.imread('frames/c6s1_000451.jpg')
 a_file = open("bboxes.txt", "r")
 
 list_of_lists = []
@@ -18,7 +17,7 @@ for i, data in enumerate(list_of_lists):
     if any("c6s1_" in s for s in data):
         photo_list.append(data)
         photo_num.append(i)
-num_o_found = 1.0
+num_o_found = 1.0 #Value used to change threshold
 for p in range(len(photo_list) - 1):
 
     name = 'frames/' + str(photo_list[p][0])
@@ -26,30 +25,23 @@ for p in range(len(photo_list) - 1):
 
     img = cv2.imread(name)
     img2 = cv2.imread(name2)
-    peopleSize = np.zeros((6, 2))
-    peopleSize2 = np.zeros((6, 2))
-    peopleCoord = np.zeros((6, 2))
-    peopleCoord2 = np.zeros((6, 2))
-    peopleCount = []
-    found_people = 0
-    num_o_people = 0
-    threshold = 0.8
-
+    peopleSize = np.zeros((6, 2)) #Matrix including sizes of bboxes in current photo
+    peopleSize2 = np.zeros((6, 2)) #Matrix including sizes of bboxes in next photo
+    peopleCoord = np.zeros((6, 2)) #Matrix including coordinates of bboxes in current photo
+    peopleCoord2 = np.zeros((6, 2)) #Matrix including coordinates of bboxes in next photo
+    peopleCount = [] #List including number of people found in current photo
+    found_people = 0 #Number of people found between 2 photos
+    num_o_people = 0 #Number of people in next photo
+    threshold = 0.8 #Base value of threshold
+    people = [] #List containing indexes of people found between 2 photos
     for i in range(int(list_of_lists[photo_num[p] + 1][0])):
-        x1 = float(list_of_lists[photo_num[p] + 2 + i][0])
-        y1 = float(list_of_lists[photo_num[p] + 2 + i][1])
-        x2 = float(list_of_lists[photo_num[p] + 2 + i][0]) + float(list_of_lists[photo_num[p] + 2 + i][2])
-        y2 = float(list_of_lists[photo_num[p] + 2 + i][1]) + float(list_of_lists[photo_num[p] + 2 + i][3])
-
         peopleCoord[i][0] = float(list_of_lists[photo_num[p] + 2 + i][0])
         peopleCoord[i][1] = float(list_of_lists[photo_num[p] + 2 + i][1])
         peopleSize[i][0] = float(list_of_lists[photo_num[p] + 2 + i][2])
         peopleSize[i][1] = float(list_of_lists[photo_num[p] + 2 + i][3])
         peopleCount.append(i)
 
-        # cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 3)
     tmp = 0.0
-
 
     for i in range(int(list_of_lists[photo_num[p + 1] + 1][0])):
 
@@ -64,47 +56,43 @@ for p in range(len(photo_list) - 1):
         peopleSize2[i][1] = float(list_of_lists[photo_num[p + 1] + 2 + i][3])
         num_o_people += 1
         personnumber = -1
+        #Adapting threshold
         threshold_local = threshold * num_o_found
         for j in range(int(list_of_lists[photo_num[p] + 1][0])):
-
-            first_prob = np.sum(1 - np.abs(np.subtract(peopleSize[j], peopleSize2[i])) / peopleSize2[i]) / 2
-            sec_prob = np.sum(1 - np.abs(np.subtract(peopleCoord[j], peopleCoord2[i]))/[img.shape[1], img.shape[0]]) / 2
-
+            ### Color calculation ###
             color1 = img[int(peopleCoord[j][1]):int(peopleCoord[j][1] + peopleSize[j][1]),
                      int(peopleCoord[j][0]):int(peopleCoord[j][0] + peopleSize[j][0])]
             color2 = img2[int(y1):int(y2),
                      int(x1):int(x2)]
-            center1x=color1.shape[0]/2
-            center1y = color1.shape[1]/2
-            color1comp = color1[int(center1x-10):int(center1x+10), int(center1y-10):int(center1y+10)]
-            center2x=color2.shape[0]/2
-            center2y = color2.shape[1]/2
-            color2comp = color2[int(center2x-10):int(center2x+10), int(center2y-10):int(center2y+10)]
+            center1x = color1.shape[0] / 2
+            center1y = color1.shape[1] / 2
+            color1comp = color1[int(center1x - 10):int(center1x + 10), int(center1y - 10):int(center1y + 10)]
+            center2x = color2.shape[0] / 2
+            center2y = color2.shape[1] / 2
+            color2comp = color2[int(center2x - 10):int(center2x + 10), int(center2y - 10):int(center2y + 10)]
+            ###########################
 
-            third_prob = np.sum(1 - np.abs(np.mean(color2comp)- np.mean(color1comp)) / 256)
+            #Size difference of bboxes
+            first_prob = np.sum(1 - np.abs(np.subtract(peopleSize[j], peopleSize2[i])) / peopleSize2[i]) / 2
+            #Distance between two bboxes
+            sec_prob = np.sum(
+                1 - np.abs(np.subtract(peopleCoord[j], peopleCoord2[i])) / [img.shape[1], img.shape[0]]) / 2
+            #Difference between mean colors in the centres of bboxes
+            third_prob = np.sum(1 - np.abs(np.mean(color2comp) - np.mean(color1comp)) / 255)
 
-            full_prob = 0.4 * first_prob + 0.1 * sec_prob +0.5*third_prob
-            print("full_prob: ", full_prob)
-            print("contains")
-            print(first_prob)
-            print(sec_prob)
-            print(third_prob)
-            print("end of prob")
+            #Full probability including weights
+            full_prob = 0.4 * first_prob + 0.1 * sec_prob + 0.5 * third_prob
+
             if full_prob > tmp and full_prob > threshold_local:
                 tmp = full_prob
                 personnumber = j
 
-        print("Person Number: ", personnumber)
+        people.append(personnumber)
         if personnumber != -1:
-            found_people+=1
-    num_o_found = found_people/np.min([num_o_people, len(peopleCount)])
+            found_people += 1
+    num_o_found = found_people / np.min([num_o_people, len(peopleCount)])
     if num_o_found < 0.5:
-        num_o_found = 0.5 #minimum size for treshhold
-    print("Number of found people ", found_people)
-    print("% of found people ", num_o_found)
-    print("peopleCount: ", peopleCount)
+        num_o_found = 0.5  # minimum size for treshhold
+    print(*people)
+    people = []
 
-    cv2.imshow('frame', img)
-    cv2.imshow('frame2', img2)
-    cv2.waitKey(0)
-    print("*******************NEW____PHOTO*****************")
