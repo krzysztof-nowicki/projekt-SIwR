@@ -1,15 +1,13 @@
 import numpy as np
 
 import cv2
-import argparse
+from pgmpy.models import FactorGraph
 
-parser = argparse.ArgumentParser()
-parser.add_argument('data_dir', type=str)
-args = parser.parse_args()
+from pgmpy.factors.discrete import DiscreteFactor
+from pgmpy.inference import BeliefPropagation
 
 
-box = args.data_dir+"bboxes.txt"
-a_file = open(box, "r")
+a_file = open("bboxes.txt", "r")
 
 list_of_lists = []
 for line in a_file:
@@ -27,8 +25,8 @@ for i, data in enumerate(list_of_lists):
 num_o_found = 1.0 #Value used to change threshold
 for p in range(len(photo_list) - 1):
 
-    name = args.data_dir+'frames/' + str(photo_list[p][0])
-    name2 = args.data_dir+'frames/' + str(photo_list[p + 1][0])
+    name = 'frames/' + str(photo_list[p][0])
+    name2 = 'frames/' + str(photo_list[p + 1][0])
 
     img = cv2.imread(name)
     img2 = cv2.imread(name2)
@@ -42,6 +40,11 @@ for p in range(len(photo_list) - 1):
     threshold = 0.8 #Base value of threshold
     people = [] #List containing indexes of people found between 2 photos
 
+    names = []
+    probs =[]
+    probs_full = []
+    phinames = []
+    phunames = []
     for i in range(int(list_of_lists[photo_num[p] + 1][0])):
         peopleCoord[i][0] = float(list_of_lists[photo_num[p] + 2 + i][0])
         peopleCoord[i][1] = float(list_of_lists[photo_num[p] + 2 + i][1])
@@ -50,8 +53,13 @@ for p in range(len(photo_list) - 1):
         peopleCount.append(i)
 
     tmp = 0.0
+    G = FactorGraph()
     for i in range(int(list_of_lists[photo_num[p + 1] + 1][0])):
 
+        name = "x"+str(i)
+        names.append(name)
+        phiname = "phi_"+name
+        phinames.append(phiname)
         x1 = float(list_of_lists[photo_num[p + 1] + 2 + i][0])
         y1 = float(list_of_lists[photo_num[p + 1] + 2 + i][1])
         x2 = float(list_of_lists[photo_num[p + 1] + 2 + i][0]) + float(list_of_lists[photo_num[p + 1] + 2 + i][2])
@@ -89,16 +97,33 @@ for p in range(len(photo_list) - 1):
 
             #Full probability including weights
             full_prob = 0.4 * first_prob + 0.1 * sec_prob + 0.5 * third_prob
-            # probs.append(full_prob)
+            probs.append(full_prob)
             if full_prob > tmp and full_prob > threshold_local:
                 tmp = full_prob
                 personnumber = j
+        probs.append(threshold)
+        probs_full.append(probs)
         people.append(personnumber)
         if personnumber != -1:
             found_people += 1
+    G.add_nodes_from(names)
+    for l in range(num_o_people):
+        G.add_node(phinames[l])
+    for l in range(num_o_people):
+        phinames[l] = DiscreteFactor([names[l]], [len(probs_full[l])], probs_full[l])
+        G.add_factors(phinames[l])
+    for i2 in range(len(names)-1):
+        phuname = "phu_"+str(i2)
+        phunames.append(phuname)
+    for i2 in range(len(names)-1):
+        phunames[i2] = DiscreteFactor([names[i2], names[i2+1]], [3, 3], [[1, 1, 1], [1, 0, 1], [1, 1, 0]])
+        G.add_factors(phunames[i2])
+    phu_2 = DiscreteFactor([names[2], names[0]], [3, 3], [[1, 1, 1], [1, 0, 1], [1, 1, 0]])
+    G.add_factors(phu_2)
+    G.check_model()
     num_o_found = found_people / np.min([num_o_people, len(peopleCount)])
     if num_o_found < 0.5:
         num_o_found = 0.5  # minimum size for treshhold
-    print(*people)
+    # print(*people)
     people = []
 
