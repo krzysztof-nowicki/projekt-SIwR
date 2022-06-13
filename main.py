@@ -2,6 +2,11 @@ import numpy as np
 
 import cv2
 import argparse
+from itertools import combinations
+from pgmpy.models import FactorGraph
+
+from pgmpy.factors.discrete import DiscreteFactor
+from pgmpy.inference import BeliefPropagation
 
 parser = argparse.ArgumentParser()
 parser.add_argument('data_dir', type=str)
@@ -37,10 +42,9 @@ for p in range(len(photo_list) - 1):
     peopleCoord = np.zeros((6, 2)) #Matrix including coordinates of bboxes in current photo
     peopleCoord2 = np.zeros((6, 2)) #Matrix including coordinates of bboxes in next photo
     peopleCount = [] #List including number of people found in current photo
-    found_people = 0 #Number of people found between 2 photos
-    num_o_people = 0 #Number of people in next photo
-    threshold = 0.8 #Base value of threshold
-    people = [] #List containing indexes of people found between 2 photos
+
+    names = []
+    probs =[]
 
     for i in range(int(list_of_lists[photo_num[p] + 1][0])):
         peopleCoord[i][0] = float(list_of_lists[photo_num[p] + 2 + i][0])
@@ -49,9 +53,13 @@ for p in range(len(photo_list) - 1):
         peopleSize[i][1] = float(list_of_lists[photo_num[p] + 2 + i][3])
         peopleCount.append(i)
 
-    tmp = 0.0
+    G = FactorGraph()
     for i in range(int(list_of_lists[photo_num[p + 1] + 1][0])):
-
+        probs = []
+        name = "x"+str(i)
+        names.append(name)
+        G.add_node(name)
+        phiname = "phi_"+name
         x1 = float(list_of_lists[photo_num[p + 1] + 2 + i][0])
         y1 = float(list_of_lists[photo_num[p + 1] + 2 + i][1])
         x2 = float(list_of_lists[photo_num[p + 1] + 2 + i][0]) + float(list_of_lists[photo_num[p + 1] + 2 + i][2])
@@ -61,10 +69,7 @@ for p in range(len(photo_list) - 1):
         peopleCoord2[i][1] = float(list_of_lists[photo_num[p + 1] + 2 + i][1])
         peopleSize2[i][0] = float(list_of_lists[photo_num[p + 1] + 2 + i][2])
         peopleSize2[i][1] = float(list_of_lists[photo_num[p + 1] + 2 + i][3])
-        num_o_people += 1
-        personnumber = -1
-        #Adapting threshold
-        threshold_local = threshold * num_o_found
+
         for j in range(int(list_of_lists[photo_num[p] + 1][0])):
             ### Color calculation ###
             color1 = img[int(peopleCoord[j][1]):int(peopleCoord[j][1] + peopleSize[j][1]),
@@ -89,16 +94,27 @@ for p in range(len(photo_list) - 1):
 
             #Full probability including weights
             full_prob = 0.4 * first_prob + 0.1 * sec_prob + 0.5 * third_prob
-            # probs.append(full_prob)
-            if full_prob > tmp and full_prob > threshold_local:
-                tmp = full_prob
-                personnumber = j
-        people.append(personnumber)
-        if personnumber != -1:
-            found_people += 1
-    num_o_found = found_people / np.min([num_o_people, len(peopleCount)])
-    if num_o_found < 0.5:
-        num_o_found = 0.5  # minimum size for treshhold
-    print(*people)
-    people = []
+            probs.append(full_prob)
+
+
+        phiname = DiscreteFactor([name], [len(peopleCount)+1], [[0.8]+ probs])
+        G.add_factors(phiname)
+        G.add_edge(name, phiname)
+
+    mat = np.ones((len(peopleCount)+1, len(peopleCount)+1))
+    for i in range(mat.shape[0]):
+        for j in range(mat.shape[1]):
+            if i !=0 and j !=0:
+                if i == j :
+                    mat[i][j]=0.0
+    combs = combinations(names, 2)
+    for i in list(combs):
+        phuname = DiscreteFactor([i[0], i[1]], [len(peopleCount)+1, len(peopleCount)+1], mat)
+        G.add_factors(phuname)
+        G.add_edge(i[0], phuname)
+        G.add_edge(i[1], phuname)
+    belief_propagation = BeliefPropagation(G)
+    result = list(belief_propagation.map_query(G.get_variable_nodes()).values())
+    result = [x - 1 for x in result]
+    print(*result)
 
