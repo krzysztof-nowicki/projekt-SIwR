@@ -29,7 +29,7 @@ for i, data in enumerate(list_of_lists):
     if any("c6s1_" in s for s in data):
         photo_list.append(data)
         photo_num.append(i)
-num_o_found = 1.0 #Value used to change threshold
+num_o_found = 1.0 
 for p in range(len(photo_list) - 1):
 
     name = args.data_dir+'frames/' + str(photo_list[p][0])
