@@ -71,80 +71,81 @@ for p in range(len(photo_list) - 1):
 
     names = []
     probs =[]
+    #Skipping graph making for photos with 0 bboxes
+    if int(list_of_lists[photo_num[p] + 1][0]) != 0 and int(list_of_lists[photo_num[p + 1] + 1][0]) !=0:
+        for i in range(int(list_of_lists[photo_num[p] + 1][0])):
+            peopleCoord[i][0] = float(list_of_lists[photo_num[p] + 2 + i][0])
+            peopleCoord[i][1] = float(list_of_lists[photo_num[p] + 2 + i][1])
+            peopleSize[i][0] = float(list_of_lists[photo_num[p] + 2 + i][2])
+            peopleSize[i][1] = float(list_of_lists[photo_num[p] + 2 + i][3])
+            peopleCount.append(i)
 
-    for i in range(int(list_of_lists[photo_num[p] + 1][0])):
-        peopleCoord[i][0] = float(list_of_lists[photo_num[p] + 2 + i][0])
-        peopleCoord[i][1] = float(list_of_lists[photo_num[p] + 2 + i][1])
-        peopleSize[i][0] = float(list_of_lists[photo_num[p] + 2 + i][2])
-        peopleSize[i][1] = float(list_of_lists[photo_num[p] + 2 + i][3])
-        peopleCount.append(i)
+        G = FactorGraph()
+        for i in range(int(list_of_lists[photo_num[p + 1] + 1][0])):
+            probs = []
+            name = "x"+str(i)
+            names.append(name)
+            G.add_node(name)
+            phiname = "phi_"+name
+            # TODO Wykorzystanie 'photo_num[p + 1] + 2 + i' jest bardzo nieczytelne.
+            photo_data = photo_num[p + 1] + 2 + i #photo_data is the number in list_of_lists
+                                                  #containing information about loaded photo
+            x1 = float(list_of_lists[photo_data][0])
+            y1 = float(list_of_lists[photo_data][1])
+            x2 = float(list_of_lists[photo_data][0]) + float(list_of_lists[photo_data][2])
+            y2 = float(list_of_lists[photo_data][1]) + float(list_of_lists[photo_data][3])
 
-    G = FactorGraph()
-    for i in range(int(list_of_lists[photo_num[p + 1] + 1][0])):
-        probs = []
-        name = "x"+str(i)
-        names.append(name)
-        G.add_node(name)
-        phiname = "phi_"+name
-        # TODO Wykorzystanie 'photo_num[p + 1] + 2 + i' jest bardzo nieczytelne.
-        photo_data = photo_num[p + 1] + 2 + i #photo_data is the number in list_of_lists
-                                              #containing information about loaded photo
-        x1 = float(list_of_lists[photo_data][0])
-        y1 = float(list_of_lists[photo_data][1])
-        x2 = float(list_of_lists[photo_data][0]) + float(list_of_lists[photo_data][2])
-        y2 = float(list_of_lists[photo_data][1]) + float(list_of_lists[photo_data][3])
+            peopleCoord2[i][0] = float(list_of_lists[photo_data][0])
+            peopleCoord2[i][1] = float(list_of_lists[photo_data][1])
+            peopleSize2[i][0] = float(list_of_lists[photo_data][2])
+            peopleSize2[i][1] = float(list_of_lists[photo_data][3])
 
-        peopleCoord2[i][0] = float(list_of_lists[photo_data][0])
-        peopleCoord2[i][1] = float(list_of_lists[photo_data][1])
-        peopleSize2[i][0] = float(list_of_lists[photo_data][2])
-        peopleSize2[i][1] = float(list_of_lists[photo_data][3])
+            for j in range(int(list_of_lists[photo_num[p] + 1][0])):
+                ### Color calculation ###
+                color1 = img[int(peopleCoord[j][1]):int(peopleCoord[j][1] + peopleSize[j][1]),
+                         int(peopleCoord[j][0]):int(peopleCoord[j][0] + peopleSize[j][0])]
+                color2 = img2[int(y1):int(y2),
+                         int(x1):int(x2)]
+                center1x = color1.shape[0] / 2
+                center1y = color1.shape[1] / 2
+                color1comp = color1[int(center1x - 10):int(center1x + 10), int(center1y - 10):int(center1y + 10)]
+                center2x = color2.shape[0] / 2
+                center2y = color2.shape[1] / 2
+                color2comp = color2[int(center2x - 10):int(center2x + 10), int(center2y - 10):int(center2y + 10)]
+                ###########################
 
-        for j in range(int(list_of_lists[photo_num[p] + 1][0])):
-            ### Color calculation ###
-            color1 = img[int(peopleCoord[j][1]):int(peopleCoord[j][1] + peopleSize[j][1]),
-                     int(peopleCoord[j][0]):int(peopleCoord[j][0] + peopleSize[j][0])]
-            color2 = img2[int(y1):int(y2),
-                     int(x1):int(x2)]
-            center1x = color1.shape[0] / 2
-            center1y = color1.shape[1] / 2
-            color1comp = color1[int(center1x - 10):int(center1x + 10), int(center1y - 10):int(center1y + 10)]
-            center2x = color2.shape[0] / 2
-            center2y = color2.shape[1] / 2
-            color2comp = color2[int(center2x - 10):int(center2x + 10), int(center2y - 10):int(center2y + 10)]
-            ###########################
+                #Size difference of bboxes
+                first_prob = np.sum(1 - np.abs(np.subtract(peopleSize[j], peopleSize2[i])) / peopleSize2[i]) / 2
+                #Distance between two bboxes
+                sec_prob = np.sum(
+                    1 - np.abs(np.subtract(peopleCoord[j], peopleCoord2[i])) / [img.shape[1], img.shape[0]]) / 2
+                #Difference between mean colors in the centres of bboxes
+                third_prob = np.sum(1 - np.abs(np.mean(color2comp) - np.mean(color1comp)) / 255)
 
-            #Size difference of bboxes
-            first_prob = np.sum(1 - np.abs(np.subtract(peopleSize[j], peopleSize2[i])) / peopleSize2[i]) / 2
-            #Distance between two bboxes
-            sec_prob = np.sum(
-                1 - np.abs(np.subtract(peopleCoord[j], peopleCoord2[i])) / [img.shape[1], img.shape[0]]) / 2
-            #Difference between mean colors in the centres of bboxes
-            third_prob = np.sum(1 - np.abs(np.mean(color2comp) - np.mean(color1comp)) / 255)
-
-            #Full probability including weights
-            full_prob = 0.4 * first_prob + 0.1 * sec_prob + 0.5 * third_prob
-            probs.append(full_prob)
+                #Full probability including weights
+                full_prob = 0.4 * first_prob + 0.1 * sec_prob + 0.5 * third_prob
+                probs.append(full_prob)
 
 
-        phiname = DiscreteFactor([name], [len(peopleCount)+1], [[0.8]+ probs])
-        G.add_factors(phiname)
-        G.add_edge(name, phiname)
+            phiname = DiscreteFactor([name], [len(peopleCount)+1], [[0.8]+ probs])
+            G.add_factors(phiname)
+            G.add_edge(name, phiname)
 
-    mat = np.ones((len(peopleCount)+1, len(peopleCount)+1))
-    for i in range(mat.shape[0]):
-        for j in range(mat.shape[1]):
-            if i !=0 and j !=0:
-                if i == j :
-                    mat[i][j]=0.0
-    combs = combinations(names, 2)
-    for i in list(combs):
-        phuname = DiscreteFactor([i[0], i[1]], [len(peopleCount)+1, len(peopleCount)+1], mat)
-        G.add_factors(phuname)
-        G.add_edge(i[0], phuname)
-        G.add_edge(i[1], phuname)
-    belief_propagation = BeliefPropagation(G)
-    result = list(belief_propagation.map_query(G.get_variable_nodes()).values())
-    result = [x - 1 for x in result]
-    # TODO Zły format danych wyjściowych.
+        mat = np.ones((len(peopleCount)+1, len(peopleCount)+1))
+        for i in range(mat.shape[0]):
+            for j in range(mat.shape[1]):
+                if i !=0 and j !=0:
+                    if i == j :
+                        mat[i][j]=0.0
+        combs = combinations(names, 2)
+        for i in list(combs):
+            phuname = DiscreteFactor([i[0], i[1]], [len(peopleCount)+1, len(peopleCount)+1], mat)
+            G.add_factors(phuname)
+            G.add_edge(i[0], phuname)
+            G.add_edge(i[1], phuname)
+        belief_propagation = BeliefPropagation(G)
+        result = list(belief_propagation.map_query(G.get_variable_nodes()).values())
+        result = [x - 1 for x in result]
+        # TODO Zły format danych wyjściowych.
 
-    print(*result)
+        print(*result)
