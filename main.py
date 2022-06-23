@@ -8,39 +8,64 @@ from pgmpy.models import FactorGraph
 from pgmpy.factors.discrete import DiscreteFactor
 from pgmpy.inference import BeliefPropagation
 
+# TODO Jakość kodu i raport (3/5)
+# TODO Raport nie wyjaśnia jak działa model, co oznaczają zmienne losowe oraz czemu służą poszczególne czynniki.
+# TODO Kod w miarę przejrzysty i okomentowany.
+
+# TODO Skuteczność śledzenia 0.0 (0/5)
+# TODO [0.00, 0.50) - 0.0
+# TODO [0.50, 0.55) - 0.5
+# TODO [0.55, 0.60) - 1.0
+# TODO [0.60, 0.65) - 1.5
+# TODO [0.65, 0.70) - 2.0
+# TODO [0.70, 0.75) - 2.5
+# TODO [0.75, 0.80) - 3.0
+# TODO [0.80, 0.85) - 3.5
+# TODO [0.85, 0.90) - 4.0
+# TODO [0.90, 0.95) - 4.5
+# TODO [0.95, 1.00) - 5.0
+
+# stderr:
+# Traceback (most recent call last):
+#   File "main.py", line 17, in <module>
+#     a_file = open(box, "r")
+# FileNotFoundError: [Errno 2] No such file or directory: '/media/janw/JanW/datasets/JW/PRW/c6s2bboxes.txt'
+
 parser = argparse.ArgumentParser()
 parser.add_argument('data_dir', type=str)
 args = parser.parse_args()
 
-
-box = args.data_dir+"bboxes.txt"
-a_file = open(box, "r")
-
+# TODO Brakuje '/'.
+box = args.data_dir+"/bboxes.txt"
+a_file = open(box, "r") #Opening with with read mode
+# TODO Lepiej plik odczytywać z 'with open(...) as ..:', bo inaczej nie jest zamykany do końca działania programu.
 list_of_lists = []
 for line in a_file:
     stripped_line = line.strip()
     line_list = stripped_line.split()
     list_of_lists.append(line_list)
 
-a_file.close()
+a_file.close() #Closing file, all information needed is already loaded
 photo_list = []
 photo_num = []
 for i, data in enumerate(list_of_lists):
-    if any("c6s1_" in s for s in data):
+    # TODO Zdjęcia mogą mieć inny przedrostek.
+    if any(".jpg" in s for s in data):
         photo_list.append(data)
         photo_num.append(i)
-num_o_found = 1.0 #Value used to change threshold
+num_o_found = 1.0
 for p in range(len(photo_list) - 1):
 
-    name = args.data_dir+'frames/' + str(photo_list[p][0])
-    name2 = args.data_dir+'frames/' + str(photo_list[p + 1][0])
+    name = args.data_dir+'/frames/' + str(photo_list[p][0])
+    name2 = args.data_dir+'/frames/' + str(photo_list[p + 1][0])
 
     img = cv2.imread(name)
     img2 = cv2.imread(name2)
-    peopleSize = np.zeros((6, 2)) #Matrix including sizes of bboxes in current photo
-    peopleSize2 = np.zeros((6, 2)) #Matrix including sizes of bboxes in next photo
-    peopleCoord = np.zeros((6, 2)) #Matrix including coordinates of bboxes in current photo
-    peopleCoord2 = np.zeros((6, 2)) #Matrix including coordinates of bboxes in next photo
+    # TODO A co jeśli będzie więcej niż 6 bboxów?
+    peopleSize = np.zeros((10, 2)) #Matrix including sizes of bboxes in previous photo
+    peopleSize2 = np.zeros((10, 2)) #Matrix including sizes of bboxes in current photo
+    peopleCoord = np.zeros((10, 2)) #Matrix including coordinates of bboxes in previous photo
+    peopleCoord2 = np.zeros((10, 2)) #Matrix including coordinates of bboxes in current photo
     peopleCount = [] #List including number of people found in current photo
 
     names = []
@@ -60,15 +85,18 @@ for p in range(len(photo_list) - 1):
         names.append(name)
         G.add_node(name)
         phiname = "phi_"+name
-        x1 = float(list_of_lists[photo_num[p + 1] + 2 + i][0])
-        y1 = float(list_of_lists[photo_num[p + 1] + 2 + i][1])
-        x2 = float(list_of_lists[photo_num[p + 1] + 2 + i][0]) + float(list_of_lists[photo_num[p + 1] + 2 + i][2])
-        y2 = float(list_of_lists[photo_num[p + 1] + 2 + i][1]) + float(list_of_lists[photo_num[p + 1] + 2 + i][3])
+        # TODO Wykorzystanie 'photo_num[p + 1] + 2 + i' jest bardzo nieczytelne.
+        photo_data = photo_num[p + 1] + 2 + i #photo_data is the number in list_of_lists
+                                              #containing information about loaded photo
+        x1 = float(list_of_lists[photo_data][0])
+        y1 = float(list_of_lists[photo_data][1])
+        x2 = float(list_of_lists[photo_data][0]) + float(list_of_lists[photo_data][2])
+        y2 = float(list_of_lists[photo_data][1]) + float(list_of_lists[photo_data][3])
 
-        peopleCoord2[i][0] = float(list_of_lists[photo_num[p + 1] + 2 + i][0])
-        peopleCoord2[i][1] = float(list_of_lists[photo_num[p + 1] + 2 + i][1])
-        peopleSize2[i][0] = float(list_of_lists[photo_num[p + 1] + 2 + i][2])
-        peopleSize2[i][1] = float(list_of_lists[photo_num[p + 1] + 2 + i][3])
+        peopleCoord2[i][0] = float(list_of_lists[photo_data][0])
+        peopleCoord2[i][1] = float(list_of_lists[photo_data][1])
+        peopleSize2[i][0] = float(list_of_lists[photo_data][2])
+        peopleSize2[i][1] = float(list_of_lists[photo_data][3])
 
         for j in range(int(list_of_lists[photo_num[p] + 1][0])):
             ### Color calculation ###
@@ -116,5 +144,6 @@ for p in range(len(photo_list) - 1):
     belief_propagation = BeliefPropagation(G)
     result = list(belief_propagation.map_query(G.get_variable_nodes()).values())
     result = [x - 1 for x in result]
-    print(*result)
+    # TODO Zły format danych wyjściowych.
 
+    print(*result)
