@@ -12,24 +12,18 @@ from pgmpy.inference import BeliefPropagation
 # TODO Raport nie wyjaśnia jak działa model, co oznaczają zmienne losowe oraz czemu służą poszczególne czynniki.
 # TODO Kod w miarę przejrzysty i okomentowany.
 
-# TODO Skuteczność śledzenia 0.0 (0/5)
-# TODO [0.00, 0.50) - 0.0
-# TODO [0.50, 0.55) - 0.5
-# TODO [0.55, 0.60) - 1.0
-# TODO [0.60, 0.65) - 1.5
-# TODO [0.65, 0.70) - 2.0
-# TODO [0.70, 0.75) - 2.5
-# TODO [0.75, 0.80) - 3.0
-# TODO [0.80, 0.85) - 3.5
-# TODO [0.85, 0.90) - 4.0
-# TODO [0.90, 0.95) - 4.5
-# TODO [0.95, 1.00) - 5.0
-
-# stderr:
-# Traceback (most recent call last):
-#   File "main.py", line 17, in <module>
-#     a_file = open(box, "r")
-# FileNotFoundError: [Errno 2] No such file or directory: '/media/janw/JanW/datasets/JW/PRW/c6s2bboxes.txt'
+# TODO Skuteczność śledzenia 0.298 (1.5/5)
+# TODO [0.00, 0.0] - 0.0
+# TODO (0.0, 0.1) - 0.5
+# TODO [0.1, 0.2) - 1.0
+# TODO [0.2, 0.3) - 1.5
+# TODO [0.3, 0.4) - 2.0
+# TODO [0.4, 0.5) - 2.5
+# TODO [0.5, 0.6) - 3.0
+# TODO [0.6, 0.7) - 3.5
+# TODO [0.7, 0.8) - 4.0
+# TODO [0.8, 0.9) - 4.5
+# TODO [0.9, 1.0) - 5.0
 
 parser = argparse.ArgumentParser()
 parser.add_argument('data_dir', type=str)
