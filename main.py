@@ -71,8 +71,38 @@ for p in range(len(photo_list) - 1):
 
     names = []
     probs =[]
-    #Skipping graph making for photos with 0 bboxes
-    if int(list_of_lists[photo_num[p] + 1][0]) != 0 and int(list_of_lists[photo_num[p + 1] + 1][0]) !=0:
+    #if previous photo had no bboxes, create factor graph for only new people
+    if int(list_of_lists[photo_num[p] + 1][0]) == 0 :
+        G = FactorGraph()
+        for i in range(int(list_of_lists[photo_num[p + 1] + 1][0])):
+            probs = []
+            name = "x"+str(i)
+            names.append(name)
+            G.add_node(name)
+            phiname = "phi_"+name
+            phiname = DiscreteFactor([name], [len(peopleCount)+1], [1.0])
+            G.add_factors(phiname)
+            G.add_edge(name, phiname)
+
+        mat = np.ones((len(peopleCount)+1, len(peopleCount)+1))
+        for i in range(mat.shape[0]):
+            for j in range(mat.shape[1]):
+                if i !=0 and j !=0:
+                    if i == j :
+                        mat[i][j]=0.0
+        combs = combinations(names, 2)
+        for i in list(combs):
+            phuname = DiscreteFactor([i[0], i[1]], [len(peopleCount)+1, len(peopleCount)+1], mat)
+            G.add_factors(phuname)
+            G.add_edge(i[0], phuname)
+            G.add_edge(i[1], phuname)
+        belief_propagation = BeliefPropagation(G)
+        result = list(belief_propagation.map_query(G.get_variable_nodes()).values())
+        result = [x - 1 for x in result]
+
+        print(*result)
+    #Skipping graph making if current photo bbox count is 0, instead print empty line
+    elif int(list_of_lists[photo_num[p + 1] + 1][0]) !=0:
         for i in range(int(list_of_lists[photo_num[p] + 1][0])):
             peopleCoord[i][0] = float(list_of_lists[photo_num[p] + 2 + i][0])
             peopleCoord[i][1] = float(list_of_lists[photo_num[p] + 2 + i][1])
@@ -149,3 +179,5 @@ for p in range(len(photo_list) - 1):
         # TODO Zły format danych wyjściowych.
 
         print(*result)
+    else:
+        print(" ")
